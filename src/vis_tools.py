@@ -43,11 +43,11 @@ class visualizer(object):
 		fig, ax = plt.subplots(1)
 		ax.axis('off')
 		ax.imshow(img.transpose(1,2,0))
-		X, Y, U, V = flow_to_XYUV(flow)
-		ax.quiver(X, Y, U, V, angles='xy', color='y')
-		plotly_fig = mpl_to_plotly(fig)
-		self.vis.plotlyplot(plotly_fig)
-		plt.clf()
+		# X, Y, U, V = flow_to_XYUV(flow)
+		# ax.quiver(X, Y, U, V, angles='xy', color='y')
+		# plotly_fig = mpl_to_plotly(fig)
+		# self.vis.plotlyplot(plotly_fig)
+		# plt.clf()
 
 
 
