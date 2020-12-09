@@ -11,24 +11,7 @@ import torch
 import time
 import pdb
 from torch.autograd import Variable
-
-# Training Configurations 
-# (You may put your needed configuration here. Please feel free to add more or use argparse. )
-# img_dir = '/home/zlz/BicycleGAN/datasets/edges2shoes/train/'
-img_dir = '../data/train/'
-img_shape = (3, 128, 128) # Please use this image dimension faster training purpose
-num_epochs = 2
-batch_size = 2
-lr_rate = 0.0002  	      # Adam optimizer learning rate
-beta1 = 0.5			  # Adam optimizer beta 1, beta 2
-beta2 = 0.999
-lambda_pixel =  10      # Loss weights for pixel loss
-lambda_latent =  0.5     # Loss weights for latent regression
-lambda_kl =  0.01         # Loss weights for kl divergence
-latent_dim =  8        # latent dimension for the encoded images from domain B
-report_freq = 10      #visualize image every 'report_freq' iters
-visual_freq = 1000
-save_freq = 1000      #save models every 'save_freq' iters
+from tensorboardX import SummaryWriter
 
 # Normalize image tensor
 def norm(image):
@@ -149,24 +132,48 @@ def all_zero_grad(optimizer1, optimizer2, optimizer3, optimizer4):
     optimizer4.zero_grad()
    
 
-# Random seeds (optional)
-torch.manual_seed(1); np.random.seed(1)
-# Define DataLoader
+############################# reproductivity #############################
+torch.manual_seed(1);
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+np.random.seed(0)
+############################# Training Configurations #############################
+img_shape = (3, 128, 128) # Please use this image dimension faster training purpose
+num_epochs = 2
+batch_size = 8
+lr_rate = 0.0002  	      # Adam optimizer learning rate
+beta1 = 0.5			  # Adam optimizer beta 1, beta 2
+beta2 = 0.999
+lambda_pixel =  10      # Loss weights for pixel loss
+lambda_latent =  0.5     # Loss weights for latent regression
+lambda_kl =  0.01         # Loss weights for kl divergence
+latent_dim =  8        # latent dimension for the encoded images from domain B
+report_freq = 10      #visualize image every 'report_freq' iters
+visual_freq = 1000
+save_freq = 1000      #save models every 'save_freq' iters
+############################# Training datasets #############################
+# img_dir = '/home/zlz/BicycleGAN/datasets/edges2shoes/train/'
+img_dir = '../data/train/'
 dataset = Edge2Shoe(img_dir)
 loader = data.DataLoader(dataset, batch_size=batch_size)
-gpu_id = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+#save models for retrain purpose
+os.makedirs("../checkpoint", exist_ok = True)
+
+# tensorboard
+os.makedirs("../logs", exist_ok = True)
+writer = SummaryWriter(log_dir="../logs")
 
 # Loss functions
-# criterion_l1 = torch.nn.L1Loss().to(gpu_id)
-# criterion_mse = torch.nn.MSELoss().to(gpu_id)
-criterion_l1 = torch.nn.L1Loss().cuda()
-criterion_mse = torch.nn.MSELoss().cuda()
+criterion_l1 = torch.nn.L1Loss().to(device)
+criterion_mse = torch.nn.MSELoss().to(device)
 
 # Define generator, encoder and discriminators
-encoder = Encoder(latent_dim).cuda()
-generator = Generator(latent_dim, img_shape).cuda()
-D_VAE = Discriminator().cuda()
-D_LR = Discriminator().cuda()
+encoder = Encoder(latent_dim).to(device)
+generator = Generator(latent_dim, img_shape).to(device)
+D_VAE = Discriminator().to(device)
+D_LR = Discriminator().to(device)
 
 # Define optimizers for networks
 optimizer_E = torch.optim.Adam(encoder.parameters(), lr=lr_rate, betas=(beta1,beta2))
@@ -209,7 +216,7 @@ for e in range(num_epochs):
         ########## Process Inputs ##########
         edge_tensor, rgb_tensor = data
         # edge_tensor, rgb_tensor = norm(edge_tensor).to(gpu_id), norm(rgb_tensor).to(gpu_id
-        edge_tensor, rgb_tensor = norm(edge_tensor).cuda(), norm(rgb_tensor).cuda()
+        edge_tensor, rgb_tensor = norm(edge_tensor).to(device), norm(rgb_tensor).to(device)
         real_A = edge_tensor
         real_B = rgb_tensor
         #----------------------------------
@@ -286,6 +293,15 @@ for e in range(num_epochs):
                  running_loss_l1_image / report_freq, running_loss_gan_vae / report_freq,
                  running_loss_kl / report_freq, running_loss_l1_z / report_freq,
                  running_loss_gan / report_freq))
+
+            ##################### write to summary writer #########################################
+            writer.add_scalar('Loss/train/total_loss', running_total_loss, len(total_loss_list))
+            writer.add_scalar('Loss/train/loss_l1_image', running_loss_l1_image, len(loss_l1_image_list))
+            writer.add_scalar('Loss/train/loss_gan_vae', running_loss_gan_vae, len(loss_gan_vae_list))
+            writer.add_scalar('Loss/train/loss_gan', running_loss_gan, len(loss_gan_list))
+            writer.add_scalar('Loss/train/loss_kl', running_loss_kl, len(loss_kl_list))
+            writer.add_scalar('Loss/train/loss_l1_z', running_loss_l1_z, len(loss_l1_z_list))
+
             # record loss
             total_loss_list.append(running_total_loss)
             loss_l1_image_list.append(running_loss_l1_image)
@@ -306,15 +322,21 @@ for e in range(num_epochs):
             start = end
         ########## Save Generators ##########
         if step % save_freq == save_freq - 1:
-            if not os.path.exists('models'): os.mkdir('models')
-            checkpoint = {'generator':generator.state_dict(),
-                          'encoder':encoder.state_dict(),
-                          'D_VAE':D_VAE.state_dict(),
-                          'D_LR':D_LR.state_dict()
+            checkpoint = {
+                    'epoch':e,
+                    'step':step,
+                    'generator':generator.state_dict(),
+                    'encoder':encoder.state_dict(),
+                    'D_VAE':D_VAE.state_dict(),
+                    'D_LR':D_LR.state_dict(),
+                    'optimizer_G': optimizer_G.state_dict(),
+                    'optimizer_E': optimizer_E.state_dict(),
+                    'optimizer_D_VAE':optimizer_D_VAE.state_dict(),
+                    'optimizer_D_LR':optimizer_D_LR.state_dict()
                           }
-            torch.save(checkpoint, 'models/bicyclegan_{}_{}.pt'.format(e,step))
-            # feel free to save checkpoint if you need retrain the model...
+            torch.save(checkpoint, '../checkpoint/bicyclegan_{}_{}.pt'.format(e,step))
         step += 1
+    writer.close()
     #     ########## Visualize Generated images ##########
     #
     #

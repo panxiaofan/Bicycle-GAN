@@ -4,6 +4,7 @@ import torch.nn as nn
 import numpy as np
 import torch
 import pdb
+import wandb
 
 ##############################
 #        Encoder 
