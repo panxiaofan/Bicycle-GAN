@@ -26,6 +26,9 @@ lambda_pixel =  10      # Loss weights for pixel loss
 lambda_latent =  0.5     # Loss weights for latent regression
 lambda_kl =  0.01         # Loss weights for kl divergence
 latent_dim =  8        # latent dimension for the encoded images from domain B
+report_freq = 10      #visualize image every 'report_freq' iters
+visual_freq = 1000
+save_freq = 1000      #save models every 'save_freq' iters
 
 # Normalize image tensor
 def norm(image):
@@ -100,7 +103,7 @@ def loss_discriminator(fake_img, D, real_img, criterion_bce, Tensor):
     return loss_D
 
 def loss_discriminator_fix_D(fake_img, D, criterion_mse, Tensor):
-    fake_d_1, fake_d_2 = D(fake_img.detach())
+    fake_d_1, fake_d_2 = D(fake_img)
     valid1 = Variable(Tensor(np.ones(fake_d_1.shape)), requires_grad=False)
     valid2 = Variable(Tensor(np.ones(fake_d_2.shape)), requires_grad=False)
     fake_loss_1 = criterion_mse(fake_d_1, valid1)
@@ -135,7 +138,7 @@ def z_loss(fake_img, encoder, random_z, criterion_l1):
     Output:
     L1 los between the encoded latent vector of B_hat and prior distribution p(z)
     '''
-    mu, logvar = encoder(fake_img)
+    mu, logvar = encoder(fake_img.detach())
     z_loss = criterion_l1(mu, random_z)
     return z_loss
 
@@ -180,6 +183,7 @@ running_loss_gan_vae = 0
 running_loss_kl = 0
 running_loss_l1_z = 0
 running_loss_gan = 0
+running_total_loss = 0
 
 loss_l1_image_list = []
 loss_gan_vae_list = []
@@ -190,15 +194,18 @@ total_loss_list = []
 # Training
 total_steps = len(loader)*num_epochs; step = 0
 
-generator.train()
-encoder.train()
-D_LR.train()
-D_VAE.train()
+img_num = 36
+
+# fixed_rand_z = torch.randn(36, latent_dim, batch_size, 1, dtype=Tensor)
+fixed_rand_z = Variable(Tensor(np.random.normal(0, 1, (batch_size, img_num, latent_dim))), requires_grad=False)
 
 for e in range(num_epochs):
+    generator.train()
+    encoder.train()
+    D_LR.train()
+    D_VAE.train()
     start = time.time()
     for idx, data in enumerate(loader):
-
         ########## Process Inputs ##########
         edge_tensor, rgb_tensor = data
         # edge_tensor, rgb_tensor = norm(edge_tensor).to(gpu_id), norm(rgb_tensor).to(gpu_id
@@ -240,9 +247,11 @@ for e in range(num_epochs):
         loss_G_cLR = loss_discriminator_fix_D(fake_B_cLR, D_LR, criterion_mse, Tensor)
         loss_G_gan_vae = loss_G_cVAE + loss_G_cLR
         # KL-divergence loss in cVAE-GAN
-        KL_div = lambda_kl * kld(mu, logvar)
+        loss_kl = kld(mu, logvar)
+        KL_div = lambda_kl * loss_kl
         # Reconstruction loss in cVAE-GAN
-        loss_l1_image = lambda_pixel * loss_generator(generator, real_A, z, real_B, criterion_l1)
+        l1_image = loss_generator(generator, real_A, z, real_B, criterion_l1)
+        loss_l1_image = lambda_pixel * l1_image
         loss_EG = loss_G_gan_vae + KL_div + loss_l1_image
         all_zero_grad(optimizer_G, optimizer_E, optimizer_D_VAE, optimizer_D_LR)
         loss_EG.backward(retain_graph=True)
@@ -262,9 +271,71 @@ for e in range(num_epochs):
             1. You may want to visualize results during training for debugging purpose
             2. Save your model every few iterations
         """
-    break
+        running_total_loss += (loss_D + loss_EG + loss_G).item()
+        running_loss_l1_image += l1_image.item()
+        running_loss_gan_vae += (loss_d_gan_vae + loss_G_cVAE).item()
+        running_loss_gan += (loss_d_gan + loss_G_cLR).item()
+        running_loss_kl += loss_kl.item()
+        running_loss_l1_z += loss_l1_z.item()
 
+        ##################### Visualization #########################################
+        if step % report_freq == report_freq - 1:
+            print(
+                'Train Epoch: {} {:.0f}% \tTotal Loss: {:.6f} \tLoss_l1_image: {:.6f}\tLoss_VAE_GAN: {:.6f}\tLoss_KL: {:.6f}\tLoss_l1_latent: {:.6f}\tLoss_GAN: {:.6f}'.format
+                (e + 1, 100. * idx / len(loader), running_total_loss / report_freq,
+                 running_loss_l1_image / report_freq, running_loss_gan_vae / report_freq,
+                 running_loss_kl / report_freq, running_loss_l1_z / report_freq,
+                 running_loss_gan / report_freq))
+            # record loss
+            total_loss_list.append(running_total_loss)
+            loss_l1_image_list.append(running_loss_l1_image)
+            loss_gan_vae_list.append(running_loss_gan_vae)
+            loss_gan_list.append(running_loss_gan)
+            loss_kl_list.append(running_loss_kl)
+            loss_l1_z_list.append(running_loss_l1_z)
 
+            # reset
+            running_loss_l1_image = 0
+            running_loss_gan_vae = 0
+            running_loss_kl = 0
+            running_loss_l1_z = 0
+            running_loss_gan = 0
+            running_total_loss = 0
+            end = time.time()
+            print(e, step, 'T: ', end - start)
+            start = end
+        ########## Save Generators ##########
+        if step % save_freq == save_freq - 1:
+            if not os.path.exists('models'): os.mkdir('models')
+            checkpoint = {'generator':generator.state_dict(),
+                          'encoder':encoder.state_dict(),
+                          'D_VAE':D_VAE.state_dict(),
+                          'D_LR':D_LR.state_dict()
+                          }
+            torch.save(checkpoint, 'models/bicyclegan_{}_{}.pt'.format(e,step))
+            # feel free to save checkpoint if you need retrain the model...
+        step += 1
+    #     ########## Visualize Generated images ##########
+    #
+    #
+    # generator.eval()
+    # with torch.no_grad:
+    #     result_image = torch.FloatTensor(batch_size * (img_num + 1), 3, 128, 128)
+    #     for i in range(batch_size):
+    #         fake =
+    #     vis_fake_A = denorm(fake_A[0].detach()).cpu().data.numpy().astype(np.uint8)
+    #     vis_fake_B = denorm(fake_B[0].detach()).cpu().data.numpy().astype(np.uint8)
+    #     vis_real_B = denorm(real_B[0].detach()).cpu().data.numpy().astype(np.uint8)
+    #     vis_real_A = denorm(real_A[0].detach()).cpu().data.numpy().astype(np.uint8)
+    #     fig, axs = plt.subplots(2, 2, figsize=(5, 5))
+    #
+    #     axs[0, 0].imshow(vis_real_A.transpose(1, 2, 0))
+    #     axs[0, 0].set_title('real images')
+    #     axs[0, 1].imshow(vis_fake_B.transpose(1, 2, 0))
+    #     axs[0, 1].set_title('generated images')
+    #     axs[1, 0].imshow(vis_real_B.transpose(1, 2, 0))
+    #     axs[1, 1].imshow(vis_fake_A.transpose(1, 2, 0))
+    #     plt.show()
 
 
 
