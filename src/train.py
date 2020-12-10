@@ -139,11 +139,12 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(0)
 ############################# Training Configurations #############################
 img_shape = (3, 128, 128) # Please use this image dimension faster training purpose
-num_epochs = 2
-batch_size = 8
+num_epochs = 20
+batch_size = 48
 lr_rate = 0.0002  	      # Adam optimizer learning rate
 beta1 = 0.5			  # Adam optimizer beta 1, beta 2
 beta2 = 0.999
+
 lambda_pixel =  10      # Loss weights for pixel loss
 lambda_latent =  0.5     # Loss weights for latent regression
 lambda_kl =  0.01         # Loss weights for kl divergence
@@ -155,7 +156,7 @@ save_freq = 1000      #save models every 'save_freq' iters
 # img_dir = '/home/zlz/BicycleGAN/datasets/edges2shoes/train/'
 img_dir = '../data/train/'
 dataset = Edge2Shoe(img_dir)
-loader = data.DataLoader(dataset, batch_size=batch_size)
+loader = data.DataLoader(dataset, batch_size=batch_size, drop_last=True)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #save models for retrain purpose
@@ -211,7 +212,7 @@ for e in range(num_epochs):
     encoder.train()
     D_LR.train()
     D_VAE.train()
-    start = time.time()
+    # start = time.time()
     for idx, data in enumerate(loader):
         ########## Process Inputs ##########
         edge_tensor, rgb_tensor = data
@@ -317,9 +318,9 @@ for e in range(num_epochs):
             running_loss_l1_z = 0
             running_loss_gan = 0
             running_total_loss = 0
-            end = time.time()
-            print(e, step, 'T: ', end - start)
-            start = end
+            # end = time.time()
+            # print(e, step, 'T: ', end - start)
+            # start = end
         ########## Save Generators ##########
         if step % save_freq == save_freq - 1:
             checkpoint = {
