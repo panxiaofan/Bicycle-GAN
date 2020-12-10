@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import lpips
 import torch
 import os 
+import numpy as np
 
 try:
     os.makedirs('./real_images')
@@ -131,3 +132,49 @@ with torch.no_grad():
         # plt.show()
         if idx > 2:
             break
+
+# ##############################################
+# #        Visualize the Training
+# ##############################################
+# fixed_z = Variable(Tensor(np.random.normal(0, 1, (2,8))), requires_grad=False)
+
+# # for each checkpoint, we visualize the result of the first 10 images in the validation set
+# def eval_checkpoint(path, device, test_loader, fixed_z):
+#     # now I hardcode the epoch to 1, remember to change it when utilize it
+#     epoch = 1
+#     # load checkpoint
+#     img_shape = (3, 128, 128) 
+#     latent_dim = 8
+#     checkpoint = torch.load(path, map_location=device)
+#     generator = Generator(latent_dim, img_shape).to(device)
+#     generator.load_state_dict(checkpoint['generator'])
+#     # visualize 
+#     with torch.no_grad():
+#         for idx, data in enumerate(test_loader, 0):
+#             edge_tensor, rgb_tensor = data
+#             edge_tensor, rgb_tensor = norm(edge_tensor).to(device), norm(rgb_tensor).to(device)
+#             real_A = edge_tensor
+#             real_B = rgb_tensor
+#             fake_B = generator(real_A, fixed_z)
+
+#             # visualize the first image in the batch
+#             vis_real_B_1 = denorm(real_B[0].detach()).cpu().data.numpy().astype(np.uint8)
+#             vis_fake_B_1 = denorm(fake_B[0].detach()).cpu().data.numpy().astype(np.uint8)
+#             vis_real_B_2 = denorm(real_B[1].detach()).cpu().data.numpy().astype(np.uint8)
+#             vis_fake_B_2 = denorm(fake_B[1].detach()).cpu().data.numpy().astype(np.uint8)
+
+#             fig, axs = plt.subplots(2, 2, figsize = (10,10))	
+#             axs[0,0].imshow(vis_real_B_1.transpose(1,2,0))
+#             axs[0,0].set_title('Real Images')
+#             axs[0,1].imshow(vis_fake_B_1.transpose(1,2,0))
+#             axs[0,1].set_title('Generated Images')
+#             axs[1,0].imshow(vis_real_B_2.transpose(1,2,0))
+#             axs[1,1].imshow(vis_fake_B_2.transpose(1,2,0))
+#             fig.savefig('./results/epoch_{}_res_{}.png'.format(epoch, idx))
+#             if idx > 3:
+#                 break
+
+# eval_checkpoint('/Users/husiyun/Desktop/CIS 680/Final Project/bicyclegan_11_11999.pt', device, test_loader, fixed_z)
+            
+
+        
