@@ -3,3 +3,5 @@ data/
 logs/
 models/
 checkpoint/
+loss_csv/
+training_curve/
