@@ -5,3 +5,6 @@ models/
 checkpoint/
 loss_csv/
 training_curve/
+archive/
+inference/
+code_submit/

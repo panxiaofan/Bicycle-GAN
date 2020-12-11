@@ -338,27 +338,6 @@ for e in range(num_epochs):
             torch.save(checkpoint, '../checkpoint/bicyclegan_{}_{}.pt'.format(e,step))
         step += 1
     writer.close()
-    #     ########## Visualize Generated images ##########
-    #
-    #
-    # generator.eval()
-    # with torch.no_grad:
-    #     result_image = torch.FloatTensor(batch_size * (img_num + 1), 3, 128, 128)
-    #     for i in range(batch_size):
-    #         fake =
-    #     vis_fake_A = denorm(fake_A[0].detach()).cpu().data.numpy().astype(np.uint8)
-    #     vis_fake_B = denorm(fake_B[0].detach()).cpu().data.numpy().astype(np.uint8)
-    #     vis_real_B = denorm(real_B[0].detach()).cpu().data.numpy().astype(np.uint8)
-    #     vis_real_A = denorm(real_A[0].detach()).cpu().data.numpy().astype(np.uint8)
-    #     fig, axs = plt.subplots(2, 2, figsize=(5, 5))
-    #
-    #     axs[0, 0].imshow(vis_real_A.transpose(1, 2, 0))
-    #     axs[0, 0].set_title('real images')
-    #     axs[0, 1].imshow(vis_fake_B.transpose(1, 2, 0))
-    #     axs[0, 1].set_title('generated images')
-    #     axs[1, 0].imshow(vis_real_B.transpose(1, 2, 0))
-    #     axs[1, 1].imshow(vis_fake_A.transpose(1, 2, 0))
-    #     plt.show()
 
 
 
