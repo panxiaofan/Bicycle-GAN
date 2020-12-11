@@ -18,7 +18,7 @@
   - train
   - val
 
-* checkpoint(this can be automatically generated after running train.py)
+* checkpoint (this can be automatically generated after running train.py)
   - bicyclegan_0_999.pt
   - bicyclegan_1_1999.pt
   - ...
@@ -31,7 +31,8 @@ train
 ```
 python train.py
 ```
-inference (make sure there are checkpoint .pt files in the checkpoint folder named as bicyclegan_x_x999.pt) where x refers to the number of epoch)
+inference
+(make sure there are checkpoint .pt files in the checkpoint folder named as bicyclegan_x_x999.pt) where x refers to the number of epoch)
 ```
 python inference.py
 ```
