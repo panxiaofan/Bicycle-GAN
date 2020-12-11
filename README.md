@@ -1,6 +1,7 @@
 # Bicycle-GAN
 
-##Dependency
+## Dependency
+
 *python 3.8
 *pytorch 1.7.0
 *..(see in requirements.txt)
@@ -16,6 +17,7 @@
 *data
 - train
 - val
+
 *checkpoint(this can be automatically generated after running train.py)
 -bicyclegan_0_999.pt
 -bicyclegan_1_1999.pt
