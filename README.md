@@ -7,7 +7,7 @@
 * ..(see requirements.txt)
 
 ## File Structure
-
+* requirements.txt
 * src
   - datasets.py
   - inference.py
