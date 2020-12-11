@@ -8,7 +8,7 @@
 
 ## File Structure
 * requirements.txt
-* src
+* src (set src folder as source root)
   - datasets.py
   - inference.py
   - models.py
