@@ -7,15 +7,16 @@
 
 ## File Structure
 
-src
--datasets.py
--inference.py
--models.py
--train.py
-data
--train
--val
-checkpoint(this can be automatically generated after running train.py)
+*src
+- datasets.py
+- inference.py
+- models.py
+- train.py
+
+*data
+- train
+- val
+*checkpoint(this can be automatically generated after running train.py)
 -bicyclegan_0_999.pt
 -bicyclegan_1_1999.pt
 -...
