@@ -31,7 +31,7 @@ train
 ```
 python train.py
 ```
-inference (make sure there is checkpoint .pt files in the checkpoint folder)
+inference (make sure there are checkpoint .pt files in the checkpoint folder named as bicyclegan_x_x999.pt) where x refers to the number of epoch)
 ```
 python inference.py
 ```
