@@ -4,7 +4,7 @@
 
 * python 3.8
 * pytorch 1.7.0
-* ..(see in requirements.txt)
+* ..(see requirements.txt)
 
 ## File Structure
 
@@ -35,3 +35,10 @@ inference
 ```
 python inference.py
 ```
+After running inference.py, a folder named inference will be generated. 
+* inference
+  - eval_checkpoints
+  - fake_images
+  - real_images
+  - results
+
