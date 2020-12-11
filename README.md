@@ -5,7 +5,7 @@
 *pytorch 1.7.0
 *..(see in requirements.txt)
 
-##File Structure
+## File Structure
 
 src
 -datasets.py
@@ -22,7 +22,8 @@ checkpoint(this can be automatically generated after running train.py)
 -bicyclegan_18_18999.pt
 -bicyclegan_19_19999.pt
 
-##Usage
+## Usage
+
 train
 ```
 python train.py
